@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baja Cafe — POS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:    #c0392b;
+      --brand-dk: #96281b;
+      --accent:   #e67e22;
+      --bg:       #1a1a2e;
+      --surface:  #16213e;
+      --card:     #0f3460;
+      --text:     #eaeaea;
+      --muted:    #8899aa;
+      --green:    #27ae60;
+      --green-dk: #1e8449;
+      --border:   #1e3a5f;
+      --radius:   12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--brand);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(0,0,0,.4);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: .05em; }
+    header h1 span { color: #ffe08a; }
+    #clock {
+      font-size: .95rem;
+      color: rgba(255,255,255,.8);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Main layout ── */
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 0;
+    }
+
+    /* ── Menu panel ── */
+    #menu-panel {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #menu-panel h2 {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* Category tabs */
+    #categories {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .cat-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: .85rem;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .cat-btn.active, .cat-btn:hover {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+    }
+
+    #menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .menu-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      cursor: pointer;
+      transition: transform .1s, box-shadow .1s, border-color .1s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    .menu-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.35);
+      border-color: var(--accent);
+    }
+    .menu-item:active { transform: scale(.97); }
+    .menu-item .emoji { font-size: 2.2rem; line-height: 1; }
+    .menu-item .name  { font-size: .9rem; font-weight: 600; text-align: center; }
+    .menu-item .price { font-size: 1rem; color: var(--accent); font-weight: 700; }
+
+    /* ── Order panel ── */
+    #order-panel {
+      width: 360px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    #order-header {
+      padding: 16px 20px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #order-header h2 { font-size: 1rem; font-weight: 700; }
+    #order-num { font-size: .8rem; color: var(--muted); }
+
+    #order-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 16px;
+    }
+
+    .order-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      animation: slideIn .15s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .order-row .item-name { flex: 1; font-size: .9rem; font-weight: 500; }
+    .order-row .item-price { font-size: .9rem; color: var(--accent); font-weight: 600; min-width: 52px; text-align: right; }
+
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+    .qty-btn {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .1s;
+    }
+    .qty-btn:hover { background: var(--brand); border-color: var(--brand); }
+    .qty-num { font-size: .9rem; font-weight: 700; min-width: 18px; text-align: center; }
+
+    #empty-msg {
+      text-align: center;
+      color: var(--muted);
+      font-size: .9rem;
+      margin-top: 40px;
+    }
+
+    /* ── Totals ── */
+    #totals {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+    .total-row.grand {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+
+    /* ── Action buttons ── */
+    #actions {
+      padding: 14px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 14px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .15s, transform .1s;
+      letter-spacing: .03em;
+    }
+    .btn:hover  { filter: brightness(1.1); }
+    .btn:active { transform: scale(.98); }
+
+    .btn-checkout { background: var(--green);  color: #fff; }
+    .btn-clear    { background: var(--brand);  color: #fff; }
+    .btn-discount { background: var(--card);   color: var(--accent); border: 1px solid var(--border); font-size: .85rem; }
+
+    /* ── Receipt Modal ── */
+    #modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #receipt {
+      background: #fff;
+      color: #111;
+      width: 340px;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #receipt h3 { text-align: center; font-size: 1.2rem; margin-bottom: 4px; }
+    #receipt .sub { text-align: center; font-size: .8rem; color: #555; margin-bottom: 16px; }
+    #receipt .divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+    #receipt .r-row { display: flex; justify-content: space-between; font-size: .88rem; margin: 4px 0; }
+    #receipt .r-total { font-weight: 700; font-size: 1rem; }
+    #receipt .thank { text-align: center; margin-top: 14px; font-size: .85rem; color: #555; }
+    #receipt-actions { display: flex; gap: 10px; margin-top: 18px; }
+    #receipt-actions button {
+      flex: 1; padding: 10px; border-radius: 8px; border: none;
+      font-size: .9rem; font-weight: 700; cursor: pointer;
+    }
+    #btn-new-order  { background: var(--green); color: #fff; }
+    #btn-close-rcpt { background: #e0e0e0; color: #333; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌮 Baja <span>Cafe</span></h1>
+  <div id="clock"></div>
+</header>
+
+<main>
+  <!-- Menu -->
+  <section id="menu-panel">
+    <h2>Menu</h2>
+    <div id="categories"></div>
+    <div id="menu-grid"></div>
+  </section>
+
+  <!-- Order -->
+  <aside id="order-panel">
+    <div id="order-header">
+      <h2>Current Order</h2>
+      <span id="order-num">Order #0001</span>
+    </div>
+
+    <div id="order-items">
+      <p id="empty-msg">No items yet — tap a menu item to add.</p>
+    </div>
+
+    <div id="totals">
+      <div class="total-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+      <div class="total-row"><span>Tax (8.5%)</span><span id="tax">$0.00</span></div>
+      <div class="total-row grand"><span>Total</span><span id="grand-total">$0.00</span></div>
+    </div>
+
+    <div id="actions">
+      <button class="btn btn-checkout" onclick="checkout()">Charge / Checkout</button>
+      <button class="btn btn-discount" onclick="applyDiscount()">Apply Discount %</button>
+      <button class="btn btn-clear"    onclick="clearOrder()">Clear Order</button>
+    </div>
+  </aside>
+</main>
+
+<!-- Receipt modal -->
+<div id="modal-overlay">
+  <div id="receipt">
+    <h3>Baja Cafe</h3>
+    <p class="sub" id="receipt-date"></p>
+    <hr class="divider" />
+    <div id="receipt-lines"></div>
+    <hr class="divider" />
+    <div class="r-row"><span>Subtotal</span><span id="r-subtotal"></span></div>
+    <div class="r-row"><span>Tax (8.5%)</span><span id="r-tax"></span></div>
+    <div class="r-row r-total"><span>TOTAL</span><span id="r-total"></span></div>
+    <p class="thank">¡Gracias! Come back soon 🌮</p>
+    <div id="receipt-actions">
+      <button id="btn-new-order"  onclick="newOrder()">New Order</button>
+      <button id="btn-close-rcpt" onclick="closeReceipt()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────────
+const MENU = [
+  { name: "Taco",              price: 3.00,  emoji: "🌮", category: "Tacos"    },
+  { name: "Baja Taco",         price: 4.25,  emoji: "🌮", category: "Tacos"    },
+  { name: "Burrito",           price: 7.50,  emoji: "🌯", category: "Burritos" },
+  { name: "Super Burrito",     price: 8.50,  emoji: "🌯", category: "Burritos" },
+  { name: "Bowl",              price: 8.50,  emoji: "🥣", category: "Bowls"    },
+  { name: "Tortilla Salad",    price: 8.00,  emoji: "🥗", category: "Bowls"    },
+  { name: "Quesadilla",        price: 8.50,  emoji: "🫓", category: "Other"    },
+  { name: "Super Quesadilla",  price: 9.50,  emoji: "🫓", category: "Other"    },
+  { name: "Nachos",            price: 11.00, emoji: "🧀", category: "Other"    },
+];
+
+const TAX_RATE = 0.085;
+
+let order        = [];   // [{ name, price, qty }]
+let orderCount   = 1;
+let discountPct  = 0;
+let activeCategory = "All";
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Category tabs ─────────────────────────────────────────────────────────────
+function buildCategories() {
+  const cats = ["All", ...new Set(MENU.map(i => i.category))];
+  const container = document.getElementById("categories");
+  cats.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "cat-btn" + (cat === "All" ? " active" : "");
+    btn.textContent = cat;
+    btn.onclick = () => {
+      activeCategory = cat;
+      document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      buildMenu();
+    };
+    container.appendChild(btn);
+  });
+}
+
+// ── Menu grid ─────────────────────────────────────────────────────────────────
+function buildMenu() {
+  const grid  = document.getElementById("menu-grid");
+  grid.innerHTML = "";
+  const items = activeCategory === "All" ? MENU : MENU.filter(i => i.category === activeCategory);
+  items.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "menu-item";
+    card.innerHTML = `
+      <div class="emoji">${item.emoji}</div>
+      <div class="name">${item.name}</div>
+      <div class="price">$${item.price.toFixed(2)}</div>
+    `;
+    card.onclick = () => addItem(item);
+    grid.appendChild(card);
+  });
+}
+
+// ── Order logic ───────────────────────────────────────────────────────────────
+function addItem(item) {
+  const existing = order.find(r => r.name === item.name);
+  if (existing) {
+    existing.qty++;
+  } else {
+    order.push({ name: item.name, price: item.price, qty: 1 });
+  }
+  renderOrder();
+}
+
+function changeQty(name, delta) {
+  const idx = order.findIndex(r => r.name === name);
+  if (idx === -1) return;
+  order[idx].qty += delta;
+  if (order[idx].qty <= 0) order.splice(idx, 1);
+  renderOrder();
+}
+
+function clearOrder() {
+  if (order.length === 0) return;
+  if (!confirm("Clear the current order?")) return;
+  order = [];
+  discountPct = 0;
+  renderOrder();
+}
+
+function applyDiscount() {
+  const val = prompt("Enter discount percentage (e.g. 10 for 10%):");
+  if (val === null) return;
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 0 || num > 100) { alert("Invalid discount."); return; }
+  discountPct = num;
+  renderOrder();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderOrder() {
+  const container = document.getElementById("order-items");
+  const emptyMsg  = document.getElementById("empty-msg");
+
+  container.querySelectorAll(".order-row").forEach(el => el.remove());
+
+  if (order.length === 0) {
+    emptyMsg.style.display = "block";
+  } else {
+    emptyMsg.style.display = "none";
+    order.forEach(row => {
+      const el = document.createElement("div");
+      el.className = "order-row";
+      el.innerHTML = `
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty('${row.name}', -1)">−</button>
+          <span class="qty-num">${row.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${row.name}', 1)">+</button>
+        </div>
+        <div class="item-name">${row.name}</div>
+        <div class="item-price">$${(row.price * row.qty).toFixed(2)}</div>
+      `;
+      container.appendChild(el);
+    });
+  }
+
+  updateTotals();
+}
+
+function calcSubtotal() {
+  return order.reduce((sum, r) => sum + r.price * r.qty, 0);
+}
+
+function updateTotals() {
+  let sub   = calcSubtotal();
+  if (discountPct > 0) sub = sub * (1 - discountPct / 100);
+  const tax   = sub * TAX_RATE;
+  const grand = sub + tax;
+
+  document.getElementById("subtotal").textContent    = "$" + sub.toFixed(2);
+  document.getElementById("tax").textContent         = "$" + tax.toFixed(2);
+  document.getElementById("grand-total").textContent = "$" + grand.toFixed(2);
+}
+
+// ── Checkout ──────────────────────────────────────────────────────────────────
+function checkout() {
+  if (order.length === 0) { alert("Add items to the order first."); return; }
+
+  let sub = calcSubtotal();
+  if (discountPct > 0) sub = sub * (1 - discountPct / 100);
+  const tax   = sub * TAX_RATE;
+  const grand = sub + tax;
+
+  // Populate receipt
+  const lines = document.getElementById("receipt-lines");
+  lines.innerHTML = "";
+  order.forEach(row => {
+    const div = document.createElement("div");
+    div.className = "r-row";
+    div.innerHTML = `<span>${row.qty}x ${row.name}</span><span>$${(row.price * row.qty).toFixed(2)}</span>`;
+    lines.appendChild(div);
+  });
+  if (discountPct > 0) {
+    const div = document.createElement("div");
+    div.className = "r-row";
+    div.style.color = "#27ae60";
+    div.innerHTML = `<span>Discount (${discountPct}%)</span><span>−$${(calcSubtotal() - sub).toFixed(2)}</span>`;
+    lines.appendChild(div);
+  }
+
+  document.getElementById("receipt-date").textContent = new Date().toLocaleString();
+  document.getElementById("r-subtotal").textContent   = "$" + sub.toFixed(2);
+  document.getElementById("r-tax").textContent        = "$" + tax.toFixed(2);
+  document.getElementById("r-total").textContent      = "$" + grand.toFixed(2);
+  document.getElementById("order-num").textContent    = `Order #${String(orderCount).padStart(4, "0")}`;
+
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function newOrder() {
+  orderCount++;
+  order = [];
+  discountPct = 0;
+  document.getElementById("order-num").textContent = `Order #${String(orderCount).padStart(4, "0")}`;
+  closeReceipt();
+  renderOrder();
+}
+
+function closeReceipt() {
+  document.getElementById("modal-overlay").classList.remove("open");
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildCategories();
+buildMenu();
+renderOrder();
+</script>
+</body>
+</html>
